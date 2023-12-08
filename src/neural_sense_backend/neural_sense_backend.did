@@ -1,0 +1,91 @@
+type DeviceConfiguration = record {
+  device_status : text;
+  research_data_id : nat64;
+  device_description : text;
+  device_name : text;
+  device_type : text;
+  device_id : nat64;
+  device_config : text;
+};
+type DeviceConfigurationPayload = record {
+  device_status : text;
+  research_data_id : nat64;
+  device_description : text;
+  device_name : text;
+  device_type : text;
+  device_config : text;
+};
+type DeviceSettings = record {
+  compatability : vec text;
+  power_consumption : nat64;
+  signal_type : text;
+  signal_frequency : nat64;
+  device_settings_id : nat64;
+};
+type DeviceSettingsPayload = record {
+  compatability : vec text;
+  power_consumption : nat64;
+  signal_type : text;
+  signal_frequency : nat64;
+};
+type Error = variant { NotFound : record { msg : text } };
+type ResearchData = record {
+  research_data_config : vec DeviceSettings;
+  research_data_id : nat64;
+  research_data_status : text;
+  research_data_description : text;
+  research_data_name : text;
+};
+type ResearchDataPayload = record {
+  research_data_status : text;
+  research_data_description : text;
+  research_data_name : text;
+};
+type Result = variant { Ok : DeviceConfiguration; Err : Error };
+type Result_1 = variant { Ok; Err : Error };
+type Result_2 = variant { Ok : DeviceSettings; Err : Error };
+type Result_3 = variant { Ok : ResearchData; Err : Error };
+type Result_4 = variant { Ok : UserProfile; Err : Error };
+type Result_5 = variant { Ok : vec DeviceConfiguration; Err : Error };
+type Result_6 = variant { Ok : vec DeviceSettings; Err : Error };
+type Result_7 = variant { Ok : vec ResearchData; Err : Error };
+type UserProfile = record {
+  user_name : text;
+  user_email : text;
+  user_id : nat64;
+  contact_number : text;
+  userdevices : vec DeviceConfiguration;
+};
+type UserProfilePayload = record {
+  user_name : text;
+  user_email : text;
+  contact_number : text;
+};
+service : {
+  add_device_configuration : (DeviceConfigurationPayload) -> (Result);
+  add_device_configuration_to_user_profile : (nat64, nat64) -> (Result_1);
+  add_device_settings : (DeviceSettingsPayload) -> (Result_2);
+  add_device_settings_to_research_data : (nat64, nat64) -> (Result_1);
+  add_research_data : (ResearchDataPayload) -> (Result_3);
+  add_research_data_to_device_configuration : (nat64, nat64) -> (Result_1);
+  add_user_profile : (UserProfilePayload) -> (Result_4);
+  delete_device_configuration : (nat64) -> (Result_1);
+  delete_device_settings : (nat64) -> (Result_1);
+  delete_research_data : (nat64) -> (Result_1);
+  delete_user_profile : (nat64) -> (Result_1);
+  get_all_device_configurations : () -> (Result_5) query;
+  get_all_device_configurations_by_research_data_id : (nat64) -> (
+      Result_5,
+    ) query;
+  get_all_device_settings : () -> (Result_6) query;
+  get_all_research_data : () -> (Result_7) query;
+  get_all_user_profiles : () -> (vec UserProfile) query;
+  get_device_configuration : (nat64) -> (Result) query;
+  get_device_settings : (nat64) -> (Result_2) query;
+  get_research_data : (nat64) -> (Result_3) query;
+  get_user_profile : (nat64) -> (Result_4) query;
+  update_device_configuration : (nat64, DeviceConfigurationPayload) -> (Result);
+  update_device_settings : (nat64, DeviceSettingsPayload) -> (Result_2);
+  update_research_data : (nat64, ResearchDataPayload) -> (Result_3);
+  update_user_profile : (nat64, UserProfilePayload) -> (Result_4);
+}

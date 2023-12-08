@@ -1,0 +1,30 @@
+{
+  "canisters": {
+    "neural_sense_backend": {
+      "candid": "src/neural_sense_backend/neural_sense_backend.did",
+      "package": "neural_sense_backend",
+      "type": "rust"
+    },
+    "neural_sense_frontend": {
+      "dependencies": [
+        "neural_sense_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/neural_sense_frontend/src/index.html"
+      },
+      "source": [
+        "src/neural_sense_frontend/assets",
+        "dist/neural_sense_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
