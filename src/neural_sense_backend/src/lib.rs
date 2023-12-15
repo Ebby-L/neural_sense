@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate serde;
+use ic_cdk::caller;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager};
 use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
 use std::cell::RefCell;
@@ -57,6 +58,7 @@ thread_local! {
 fn is_invalid_string(str: &String) -> bool{
     return str.trim().is_empty()
 }
+
 // function to create a user profile
 #[ic_cdk::update]
 fn add_user_profile(payload: UserProfilePayload) -> Result<UserProfile, Error> {
@@ -75,6 +77,7 @@ fn add_user_profile(payload: UserProfilePayload) -> Result<UserProfile, Error> {
         .expect("cannot increment id counter");
     let user_profile = UserProfile {
         user_id: id,
+        user_principal: caller().to_string(),
         user_name: payload.user_name,
         user_email: payload.user_email,
         contact_number: payload.contact_number,
@@ -97,18 +100,20 @@ fn update_user_profile(user_id: u64, payload: UserProfilePayload) -> Result<User
         });
       
     }
+    let user = get_user_profile(user_id)?;
+    is_caller_user_principal(&user)?;
     let user_profile = UserProfile {
         user_id,
+        user_principal: user.user_principal,
         user_name: payload.user_name,
         user_email: payload.user_email,
         contact_number: payload.contact_number,
-        userdevices: Vec::new(),
+        userdevices: user.userdevices,
     };
     USER_PROFILE_STORAGE.with(|storage| {
         storage
             .borrow_mut()
             .insert(user_id, user_profile.clone())
-            .expect("cannot insert user profile")
     });
     Ok(user_profile)
 
@@ -127,6 +132,8 @@ fn get_user_profile(user_id: u64) -> Result<UserProfile, Error> {
 // function to delete a user profile
 #[ic_cdk::update]
 fn delete_user_profile(user_id: u64) -> Result<(), Error> {
+    let user = get_user_profile(user_id)?;
+    is_caller_user_principal(&user)?;
     USER_PROFILE_STORAGE.with(|storage| {
         storage
             .borrow_mut()
@@ -150,6 +157,22 @@ fn get_all_user_profiles() -> Vec<UserProfile> {
     })
 }
 
+// helper function to check whether the caller is the principal of the user
+fn is_caller_user_principal(user_profile: &UserProfile) -> Result<(), Error>{
+    if user_profile.user_principal != caller().to_string(){
+        return Err(Error::NotUserPrincipal)
+    }else{
+        Ok(())
+    }
+}
+// helper function to check whether the caller is the researcher
+fn is_caller_researcher_principal(research_data: &ResearchData) -> Result<(), Error>{
+    if research_data.researcher_principal != caller().to_string(){
+        return Err(Error::NotResearcherPrincipal)
+    }else{
+        Ok(())
+    }
+}
 
 // Device Configuration
 
@@ -169,7 +192,9 @@ fn add_device_configuration(payload: DeviceConfigurationPayload) -> Result<Devic
       
     }
     // ensures research data exists
-    get_research_data(payload.research_data_id)?;
+    let research_data = get_research_data(payload.research_data_id)?;
+    is_caller_researcher_principal(&research_data)?;
+
     let id = DEVICE_CONFIGURATION_COUNTER
         .with(|counter| {
             let current_value = *counter.borrow().get();
@@ -207,8 +232,14 @@ fn update_device_configuration(device_id: u64, payload: DeviceConfigurationPaylo
             });
       
     }
-    // ensures research data exists
+    // ensures new research data id exists
     get_research_data(payload.research_data_id)?;
+
+    let device_configuration = get_device_configuration(device_id)?;
+    let research_data = get_research_data(device_configuration.research_data_id)?;
+    // ensures caller is the current researcher for the current researcher_data_id of the device configuration
+    is_caller_researcher_principal(&research_data)?;
+
     let device_configuration = DeviceConfiguration {
         device_id,
         device_name: payload.device_name,
@@ -241,6 +272,10 @@ fn get_device_configuration(device_id: u64) -> Result<DeviceConfiguration, Error
 // function to delete a device configuration
 #[ic_cdk::update]
 fn delete_device_configuration(device_id: u64) -> Result<(), Error> {
+    let device_configuration = get_device_configuration(device_id)?;
+    let research_data = get_research_data(device_configuration.research_data_id)?;
+    // ensures caller is the current researcher for the current researcher_data_id of the device configuration
+    is_caller_researcher_principal(&research_data)?;
     DEVICE_CONFIGURATION_STORAGE.with(|storage| {
         storage
             .borrow_mut()
@@ -351,6 +386,7 @@ fn add_research_data(payload: ResearchDataPayload) -> Result<ResearchData, Error
         .expect("cannot increment id counter");
     let research_data = ResearchData {
         research_data_id: id,
+        researcher_principal: caller().to_string(),
         research_data_name: payload.research_data_name,
         research_data_description: payload.research_data_description,
         research_data_status: payload.research_data_status,
@@ -378,20 +414,22 @@ fn update_research_data(research_data_id: u64, payload: ResearchDataPayload) -> 
         });
       
     }
-    let research_data = ResearchData {
+    let research_data = get_research_data(research_data_id)?;
+    is_caller_researcher_principal(&research_data)?;
+    let updated_research_data = ResearchData {
         research_data_id,
+        researcher_principal: research_data.researcher_principal,
         research_data_name: payload.research_data_name,
         research_data_description: payload.research_data_description,
         research_data_status: payload.research_data_status,
-        research_data_config: Vec::new(),
+        research_data_config: research_data.research_data_config,
     };
     RESEARCH_DATA_STORAGE.with(|storage| {
         storage
             .borrow_mut()
-            .insert(research_data_id, research_data.clone())
-            .expect("cannot insert research data")
+            .insert(research_data_id, updated_research_data.clone())
     });
-    Ok(research_data)
+    Ok(updated_research_data)
 
 }
 
@@ -409,6 +447,8 @@ fn get_research_data(research_data_id: u64) -> Result<ResearchData, Error> {
 
 #[ic_cdk::update]
 fn delete_research_data(research_data_id: u64) -> Result<(), Error> {
+    let research_data = get_research_data(research_data_id)?;
+    is_caller_researcher_principal(&research_data)?;
     RESEARCH_DATA_STORAGE.with(|storage| {
         storage
             .borrow_mut()
@@ -631,7 +671,7 @@ fn add_research_data_to_device_configuration(device_configuration_id: u64, resea
 // add a device settings to a research data
 #[ic_cdk::update]
 fn add_device_settings_to_research_data(research_data_id: u64, device_settings_id: u64) -> Result<(), Error> {
-    let research_data = RESEARCH_DATA_STORAGE.with(|storage| {
+    let mut research_data = RESEARCH_DATA_STORAGE.with(|storage| {
         storage
             .borrow_mut()
             .get(&research_data_id)
@@ -639,7 +679,7 @@ fn add_device_settings_to_research_data(research_data_id: u64, device_settings_i
                 msg: format!("research data  with id={} not found", research_data_id),
             })
     })?;
-    let mut research_data = research_data.clone();
+    is_caller_researcher_principal(&research_data)?;
     let device_settings = DEVICE_SETTINGS_STORAGE.with(|storage| {
         storage
             .borrow_mut()
@@ -654,7 +694,6 @@ fn add_device_settings_to_research_data(research_data_id: u64, device_settings_i
         storage
             .borrow_mut()
             .insert(research_data_id, research_data.clone())
-            .expect("cannot insert research data")
     });
 
     Ok(())
@@ -666,6 +705,8 @@ fn add_device_settings_to_research_data(research_data_id: u64, device_settings_i
 #[derive(candid::CandidType, Deserialize, Serialize)]
 enum Error {
     NotFound { msg: String },
+    NotUserPrincipal,
+    NotResearcherPrincipal
 }
 
 // Export the candid interface

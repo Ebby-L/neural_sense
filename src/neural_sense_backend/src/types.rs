@@ -10,6 +10,7 @@ pub type IdCell = Cell<u64, Memory>;
 #[derive(candid::CandidType, Clone, Serialize, Deserialize)]
 pub struct UserProfile {
     pub user_id: u64,
+    pub user_principal: String,
     pub user_name: String,
     pub user_email: String,
     pub contact_number: String,
@@ -32,6 +33,7 @@ pub struct DeviceConfiguration {
 #[derive(candid::CandidType, Clone, Serialize, Deserialize)]
 pub struct ResearchData {
     pub research_data_id: u64,
+    pub researcher_principal: String,
     pub research_data_name: String,
     pub research_data_description: String,
     pub research_data_status: String,
