@@ -118,7 +118,108 @@ impl BoundedStorable for DeviceSettings {
     const MAX_SIZE: u32 = 1024;
     const IS_FIXED_SIZE: bool = false;
 }
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct UserActivityLog {
+    activity_id: u64,
+    user_id: u64,
+    activity: String,
+    timestamp: u64, // Unix timestamp
+}
+impl Storable for UserActivityLog {
+    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
 
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+}
+impl BoundedStorable for UserActivityLog {
+    const MAX_SIZE: u32 = 2048; // Adjust size based on expected data size
+    const IS_FIXED_SIZE: bool = false;
+}
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct UserNotification {
+    notification_id: u64,
+    user_id: u64,
+    notification: String,
+    timestamp: u64, // Unix timestamp
+}
+impl Storable for UserNotification {
+    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+}
+impl BoundedStorable for UserNotification {
+    const MAX_SIZE: u32 = 2048; // Adjust size based on expected data size
+    const IS_FIXED_SIZE: bool = false;
+}
+
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct DeviceHealth {
+    device_id: u64,
+    health_status: String,
+    last_checked: u64,
+    additional_info: String,
+}
+impl Storable for DeviceHealth {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+}
+
+impl BoundedStorable for DeviceHealth {
+    const MAX_SIZE: u32 = 2048;
+    const IS_FIXED_SIZE: bool = false;
+}
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct ResearchCollaboration {
+    research_data_id: u64,
+    collaborators: Vec<u64>,
+}
+impl Storable for ResearchCollaboration {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+}
+
+impl BoundedStorable for ResearchCollaboration {
+    const MAX_SIZE: u32 = 2048;
+    const IS_FIXED_SIZE: bool = false;
+}
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct UserFeedback {
+    feedback_id: u64,
+    user_id: u64,
+    feedback: String,
+    timestamp: u64,
+}
+impl Storable for UserFeedback {
+    fn to_bytes(&self) -> Cow<[u8]> {
+        Cow::Owned(Encode!(self).unwrap())
+    }
+
+    fn from_bytes(bytes: Cow<[u8]>) -> Self {
+        Decode!(bytes.as_ref(), Self).unwrap()
+    }
+}
+
+impl BoundedStorable for UserFeedback {
+    const MAX_SIZE: u32 = 2048;
+    const IS_FIXED_SIZE: bool = false;
+}
 
 // thread local storage for the memory manager
 thread_local! {
@@ -161,6 +262,26 @@ thread_local! {
     static DEVICE_SETTINGS_STORAGE: RefCell<StableBTreeMap<u64, DeviceSettings, Memory>> = RefCell::new(
         StableBTreeMap::init(MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(7))))
     );
+    static USER_ACTIVITY_LOG_STORAGE: RefCell<StableBTreeMap<u64, UserActivityLog, Memory>> =
+        RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(9)))
+    ));
+    static USER_NOTIFICATION_STORAGE: RefCell<StableBTreeMap<u64, UserNotification, Memory>> =
+        RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(10)))
+    ));
+    static DEVICE_HEALTH_STORAGE: RefCell<StableBTreeMap<u64, DeviceHealth, Memory>> =
+        RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(11)))
+    ));
+    static RESEARCH_COLLABORATION_STORAGE: RefCell<StableBTreeMap<u64, ResearchCollaboration, Memory>> =
+        RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(12)))
+    ));
+    static USER_FEEDBACK_STORAGE: RefCell<StableBTreeMap<u64, UserFeedback, Memory>> =
+        RefCell::new(StableBTreeMap::init(
+            MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(13)))
+    ));
 
 
 
@@ -173,6 +294,33 @@ struct UserProfilePayload {
     user_name: String,
     user_email: String,
     contact_number: String,
+}
+#[derive(candid::CandidType, Serialize, Deserialize)]
+struct HealthDataPayload {
+    device_id: u64,
+    health_status: String,
+    additional_info: String,
+}
+
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct UserNotificationPayload {
+    user_id: u64,
+    notification: String,
+}
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct UserActivityLogPayload {
+    user_id: u64,
+    activity: String,
+}
+#[derive(candid::CandidType, Serialize, Deserialize)]
+struct CollaborationPayload {
+    research_data_id: u64,
+    collaborators: Vec<u64>,
+}
+#[derive(candid::CandidType, Serialize, Deserialize)]
+struct FeedbackPayload {
+    user_id: u64,
+    feedback: String,
 }
 
 // payload for the  device configuration
@@ -432,7 +580,64 @@ fn get_all_device_configurations() -> Result<Vec<DeviceConfiguration>, Error> {
         })
     }
 }
+#[ic_cdk::update]
+fn log_device_health(payload: HealthDataPayload) -> Result<(), Error> {
+    let device_health = DeviceHealth {
+        device_id: payload.device_id,
+        health_status: payload.health_status,
+        last_checked: ic_cdk::api::time(),
+        additional_info: payload.additional_info,
+    };
 
+    // Assuming a function to generate unique health record ID
+    let health_id = generate_health_record_id(); 
+
+    DEVICE_HEALTH_STORAGE.with(|storage| {
+        storage.borrow_mut().insert(health_id, device_health)
+    });
+
+    Ok(())
+}
+fn generate_health_record_id() -> u64 {
+    ic_cdk::api::time() // Current Unix timestamp
+}
+#[ic_cdk::update]
+fn manage_research_collaboration(payload: CollaborationPayload) -> Result<(), Error> {
+    let research_collaboration = ResearchCollaboration {
+        research_data_id: payload.research_data_id,
+        collaborators: payload.collaborators,
+    };
+
+    // Assuming a function to generate unique collaboration record ID
+    let collaboration_id = generate_collaboration_record_id();
+
+    RESEARCH_COLLABORATION_STORAGE.with(|storage| {
+        storage.borrow_mut().insert(collaboration_id, research_collaboration)
+    });
+
+    Ok(())
+}
+fn generate_collaboration_record_id() -> u64 {
+    ic_cdk::api::time() // Current Unix timestamp
+}
+#[ic_cdk::update]
+fn submit_user_feedback(payload: FeedbackPayload) -> Result<(), Error> {
+    let user_feedback = UserFeedback {
+        feedback_id: generate_feedback_id(), // Function to generate unique feedback ID
+        user_id: payload.user_id,
+        feedback: payload.feedback,
+        timestamp: ic_cdk::api::time(),
+    };
+
+    USER_FEEDBACK_STORAGE.with(|storage| {
+        storage.borrow_mut().insert(user_feedback.feedback_id, user_feedback)
+    });
+
+    Ok(())
+}
+fn generate_feedback_id() -> u64 {
+    ic_cdk::api::time() // Current Unix timestamp
+}
 // function to get all device configurations by research data id
 #[ic_cdk::query]
 fn get_all_device_configurations_by_research_data_id(research_data_id: u64) -> Result<Vec<DeviceConfiguration>, Error> {
@@ -751,6 +956,53 @@ fn add_research_data_to_device_configuration(device_configuration_id: u64, resea
     });
 
     Ok(())
+}
+#[ic_cdk::update]
+fn log_user_activity(user_id: u64, activity: String) -> Result<(), Error> {
+    let activity_id = generate_activity_id(); // Function to generate unique activity ID
+    let timestamp = ic_cdk::api::time();
+
+    let user_activity_log = UserActivityLog {
+        activity_id,
+        user_id,
+        activity,
+        timestamp,
+    };
+
+    USER_ACTIVITY_LOG_STORAGE.with(|storage| {
+        storage.borrow_mut().insert(activity_id, user_activity_log)
+    });
+
+    Ok(())
+}
+fn generate_activity_id() -> u64 {
+    ic_cdk::api::time() // Current Unix timestamp
+}
+
+#[ic_cdk::update]
+fn send_user_notification(user_id: u64, notification: String) -> Result<(), Error> {
+    let notification_id = generate_notification_id(); // Generate a unique notification ID
+
+    let user_notification = UserNotification {
+        notification_id,
+        user_id,
+        notification: notification.clone(), // Cloning the String
+        timestamp: ic_cdk::api::time(),
+    };
+
+    USER_NOTIFICATION_STORAGE.with(|storage| {
+        storage.borrow_mut().insert(notification_id, user_notification)
+    });
+
+    // If you need to use `notification` again after this, it's now safe to do so
+    // For example, logging the notification
+    ic_cdk::println!("Notification sent: {}", notification);
+
+    Ok(())
+}
+
+fn generate_notification_id() -> u64 {
+    ic_cdk::api::time() // Current Unix timestamp
 }
 
 // add a device settings to a research data
