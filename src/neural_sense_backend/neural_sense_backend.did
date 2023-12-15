@@ -73,7 +73,6 @@ service : {
   add_device_settings : (DeviceSettingsPayload) -> (Result_2);
   add_device_settings_to_research_data : (nat64, nat64) -> (Result_1);
   add_research_data : (ResearchDataPayload) -> (Result_3);
-  add_research_data_to_device_configuration : (nat64, nat64) -> (Result_1);
   add_user_profile : (UserProfilePayload) -> (Result_4);
   delete_device_configuration : (nat64) -> (Result_1);
   delete_device_settings : (nat64) -> (Result_1);
