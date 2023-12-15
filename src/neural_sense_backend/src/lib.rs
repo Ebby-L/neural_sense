@@ -1,124 +1,11 @@
 #[macro_use]
 extern crate serde;
-use candid::{Decode, Encode};
-use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
-use ic_stable_structures::{BoundedStorable, Cell, DefaultMemoryImpl, StableBTreeMap, Storable};
-use std::{borrow::Cow, cell::RefCell};
+use ic_stable_structures::memory_manager::{MemoryId, MemoryManager};
+use ic_stable_structures::{DefaultMemoryImpl, StableBTreeMap};
+use std::cell::RefCell;
 
-type Memory = VirtualMemory<DefaultMemoryImpl>;
-type IdCell = Cell<u64, Memory>;
-
-// struct representing a user profile
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct UserProfile {
-    user_id: u64,
-    user_name: String,
-    user_email: String,
-    contact_number: String,
-    userdevices: Vec<DeviceConfiguration>,
-}
-
-// struct representing a prosthetic configuration
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct DeviceConfiguration {
-    device_id: u64,
-    device_name: String,
-    device_type: String,
-    device_description: String,
-    device_status: String,
-    device_config: String,
-    research_data_id: u64,
-}
-
-// struct representing a research data
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct ResearchData {
-    research_data_id: u64,
-    research_data_name: String,
-    research_data_description: String,
-    research_data_status: String,
-    research_data_config: Vec<DeviceSettings>,  // Willhold the record of Device setting and later updates
-}
-
-// struct representing a device settings
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct DeviceSettings {
-    device_settings_id: u64,
-    power_consumption: u64,
-    signal_frequency: u64,
-    signal_type: String,
-    compatability: Vec<String>, // List of Compatible Interfaces or systems
-}
-
-
-
-// Implementing the Storable and BoundedStorable trait for the UserProfile struct
-impl Storable for UserProfile {
-    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        Cow::Owned(Encode!(self).unwrap())
-    }
-
-    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
-    }
-}
-
-impl BoundedStorable for UserProfile {
-    const MAX_SIZE: u32 = 1024;
-    const IS_FIXED_SIZE: bool = false;
-}
-
-
-// Implementing the Storable and BoundedStorable trait for the DeviceConfiguration struct
-impl Storable for DeviceConfiguration {
-    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        Cow::Owned(Encode!(self).unwrap())
-    }
-
-    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
-    }
-}
-
-impl BoundedStorable for DeviceConfiguration {
-    const MAX_SIZE: u32 = 1024;
-    const IS_FIXED_SIZE: bool = false;
-}
-
-
-// Implementing the Storable and BoundedStorable trait for the ResearchData struct
-impl Storable for ResearchData {
-    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        Cow::Owned(Encode!(self).unwrap())
-    }
-
-    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
-    }
-}
-
-impl BoundedStorable for ResearchData {
-    const MAX_SIZE: u32 = 1024;
-    const IS_FIXED_SIZE: bool = false;
-}
-
-
-// Implementing the Storable and BoundedStorable trait for the DeviceSettings struct
-impl Storable for DeviceSettings {
-    fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
-        Cow::Owned(Encode!(self).unwrap())
-    }
-
-    fn from_bytes(bytes: std::borrow::Cow<[u8]>) -> Self {
-        Decode!(bytes.as_ref(), Self).unwrap()
-    }
-}
-
-impl BoundedStorable for DeviceSettings {
-    const MAX_SIZE: u32 = 1024;
-    const IS_FIXED_SIZE: bool = false;
-}
-
+mod types;
+use types::*;
 
 // thread local storage for the memory manager
 thread_local! {
@@ -167,50 +54,14 @@ thread_local! {
 
 }
 
-// payload for the  user profile
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct UserProfilePayload {
-    user_name: String,
-    user_email: String,
-    contact_number: String,
+fn is_invalid_string(str: &String) -> bool{
+    return str.trim().is_empty()
 }
-
-// payload for the  device configuration
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct DeviceConfigurationPayload {
-    device_name: String,
-    device_type: String,
-    device_description: String,
-    device_status: String,
-    device_config: String,
-    research_data_id: u64,
-}
-
-
-// payload for the  research data
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct ResearchDataPayload {
-    research_data_name: String,
-    research_data_description: String,
-    research_data_status: String,
-}
-
-// payload for the  device settings
-
-#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
-struct DeviceSettingsPayload {
-    power_consumption: u64,
-    signal_frequency: u64,
-    signal_type: String,
-    compatability: Vec<String>, // List of Compatible Interfaces or systems
-}
-
-
 // function to create a user profile
 #[ic_cdk::update]
 fn add_user_profile(payload: UserProfilePayload) -> Result<UserProfile, Error> {
     //input validation check
-    if payload.user_name.is_empty() || payload.user_email.is_empty() || payload.contact_number.is_empty(){
+    if is_invalid_string(&payload.user_name) || is_invalid_string(&payload.user_email) || is_invalid_string(&payload.contact_number){
         return Err(Error::NotFound {
             msg: "Invalid input Fill all Fields".to_string(),
         });
@@ -240,7 +91,7 @@ fn add_user_profile(payload: UserProfilePayload) -> Result<UserProfile, Error> {
 #[ic_cdk::update]
 fn update_user_profile(user_id: u64, payload: UserProfilePayload) -> Result<UserProfile, Error> {
     //input validation check
-    if payload.user_name.is_empty() || payload.user_email.is_empty() || payload.contact_number.is_empty(){
+    if is_invalid_string(&payload.user_name) || is_invalid_string(&payload.user_email) || is_invalid_string(&payload.contact_number){
         return Err(Error::NotFound {
             msg: "Invalid input Fill all Fields".to_string(),
         });
@@ -306,12 +157,19 @@ fn get_all_user_profiles() -> Vec<UserProfile> {
 #[ic_cdk::update]
 fn add_device_configuration(payload: DeviceConfigurationPayload) -> Result<DeviceConfiguration, Error> {
     //input validation check
-    if payload.device_name.is_empty() || payload.device_type.is_empty() || payload.device_description.is_empty() || payload.device_status.is_empty() || payload.device_config.is_empty(){
-        return Err(Error::NotFound {
-            msg: "Invalid input Fill all Fields".to_string(),
-        });
+    if is_invalid_string(&payload.device_name)
+        || is_invalid_string(&payload.device_type)
+        || is_invalid_string(&payload.device_description)
+        || is_invalid_string(&payload.device_status) 
+        || is_invalid_string(&payload.device_config)
+    {
+            return Err(Error::NotFound {
+                msg: "Invalid input Fill all Fields".to_string(),
+            });
       
     }
+    // ensures research data exists
+    get_research_data(payload.research_data_id)?;
     let id = DEVICE_CONFIGURATION_COUNTER
         .with(|counter| {
             let current_value = *counter.borrow().get();
@@ -338,12 +196,19 @@ fn add_device_configuration(payload: DeviceConfigurationPayload) -> Result<Devic
 #[ic_cdk::update]
 fn update_device_configuration(device_id: u64, payload: DeviceConfigurationPayload) -> Result<DeviceConfiguration, Error> {
     //input validation check
-    if payload.device_name.is_empty() || payload.device_type.is_empty() || payload.device_description.is_empty() || payload.device_status.is_empty() || payload.device_config.is_empty(){
-        return Err(Error::NotFound {
-            msg: "Invalid input Fill all Fields".to_string(),
-        });
+    if is_invalid_string(&payload.device_name)
+        || is_invalid_string(&payload.device_type)
+        || is_invalid_string(&payload.device_description)
+        || is_invalid_string(&payload.device_status) 
+        || is_invalid_string(&payload.device_config)
+    {
+            return Err(Error::NotFound {
+                msg: "Invalid input Fill all Fields".to_string(),
+            });
       
     }
+    // ensures research data exists
+    get_research_data(payload.research_data_id)?;
     let device_configuration = DeviceConfiguration {
         device_id,
         device_name: payload.device_name,
@@ -468,7 +333,11 @@ fn get_all_device_configurations_by_research_data_id(research_data_id: u64) -> R
 #[ic_cdk::update]
 fn add_research_data(payload: ResearchDataPayload) -> Result<ResearchData, Error> {
     //input validation check
-    if payload.research_data_name.is_empty() || payload.research_data_description.is_empty() || payload.research_data_status.is_empty(){
+    if is_invalid_string(&payload.research_data_name) 
+        || is_invalid_string(&payload.research_data_description)
+        || is_invalid_string(&payload.research_data_status)
+        
+    {
         return Err(Error::NotFound {
             msg: "Invalid input Fill all Fields".to_string(),
         });
@@ -499,7 +368,11 @@ fn add_research_data(payload: ResearchDataPayload) -> Result<ResearchData, Error
 #[ic_cdk::update]
 fn update_research_data(research_data_id: u64, payload: ResearchDataPayload) -> Result<ResearchData, Error> {
     //input validation check
-    if payload.research_data_name.is_empty() || payload.research_data_description.is_empty() || payload.research_data_status.is_empty(){
+    if is_invalid_string(&payload.research_data_name) 
+        || is_invalid_string(&payload.research_data_description)
+        || is_invalid_string(&payload.research_data_status)
+        
+    {
         return Err(Error::NotFound {
             msg: "Invalid input Fill all Fields".to_string(),
         });
@@ -573,7 +446,7 @@ fn get_all_research_data() -> Result<Vec<ResearchData>, Error> {
 #[ic_cdk::update]
 fn add_device_settings(payload: DeviceSettingsPayload) -> Result<DeviceSettings, Error> {
     //input validation check
-    if payload.signal_type.is_empty() || payload.compatability.is_empty(){
+    if is_invalid_string(&payload.signal_type) || payload.compatability.is_empty(){
         return Err(Error::NotFound {
             msg: "Invalid input Fill all Fields".to_string(),
         });
@@ -603,7 +476,7 @@ fn add_device_settings(payload: DeviceSettingsPayload) -> Result<DeviceSettings,
 #[ic_cdk::update]
 fn update_device_settings(device_settings_id: u64, payload: DeviceSettingsPayload) -> Result<DeviceSettings, Error> {
     //input validation check
-    if payload.signal_type.is_empty() || payload.compatability.is_empty(){
+    if is_invalid_string(&payload.signal_type) || payload.compatability.is_empty(){
         return Err(Error::NotFound {
             msg: "Invalid input Fill all Fields".to_string(),
         });
@@ -740,6 +613,8 @@ fn add_research_data_to_device_configuration(device_configuration_id: u64, resea
                 msg: format!("device configuration  with id={} not found", device_configuration_id),
             })
     })?;
+    // ensures research data exists
+    get_research_data(research_data_id)?;
     let mut device_config = device_config.clone();
     device_config.research_data_id = research_data_id;
 
