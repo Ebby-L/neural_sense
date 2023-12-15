@@ -620,6 +620,8 @@ fn add_device_configuration_to_user_profile(user_id: u64, device_configuration_i
             })
     })?;
 
+    is_caller_user_principal(&user_profile)?;
+
     let device_config = DEVICE_CONFIGURATION_STORAGE.with(|storage| {
         storage
             .borrow_mut()
@@ -642,31 +644,6 @@ fn add_device_configuration_to_user_profile(user_id: u64, device_configuration_i
     Ok(())
 }
 
-// add a research data to a device configuration
-#[ic_cdk::update]
-fn add_research_data_to_device_configuration(device_configuration_id: u64, research_data_id: u64) -> Result<(), Error> {
-    let device_config = DEVICE_CONFIGURATION_STORAGE.with(|storage| {
-        storage
-            .borrow_mut()
-            .get(&device_configuration_id)
-            .ok_or(Error::NotFound {
-                msg: format!("device configuration  with id={} not found", device_configuration_id),
-            })
-    })?;
-    // ensures research data exists
-    get_research_data(research_data_id)?;
-    let mut device_config = device_config.clone();
-    device_config.research_data_id = research_data_id;
-
-    DEVICE_CONFIGURATION_STORAGE.with(|storage| {
-        storage
-            .borrow_mut()
-            .insert(device_configuration_id, device_config.clone())
-            .expect("cannot insert device configuration")
-    });
-
-    Ok(())
-}
 
 // add a device settings to a research data
 #[ic_cdk::update]
