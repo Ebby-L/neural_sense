@@ -28,12 +28,17 @@ type DeviceSettingsPayload = record {
   signal_type : text;
   signal_frequency : nat64;
 };
-type Error = variant { NotFound : record { msg : text } };
+type Error = variant {
+  NotResearcherPrincipal;
+  NotUserPrincipal;
+  NotFound : record { msg : text };
+};
 type ResearchData = record {
   research_data_config : vec DeviceSettings;
   research_data_id : nat64;
   research_data_status : text;
   research_data_description : text;
+  researcher_principal : text;
   research_data_name : text;
 };
 type ResearchDataPayload = record {
@@ -50,6 +55,7 @@ type Result_5 = variant { Ok : vec DeviceConfiguration; Err : Error };
 type Result_6 = variant { Ok : vec DeviceSettings; Err : Error };
 type Result_7 = variant { Ok : vec ResearchData; Err : Error };
 type UserProfile = record {
+  user_principal : text;
   user_name : text;
   user_email : text;
   user_id : nat64;
@@ -67,7 +73,6 @@ service : {
   add_device_settings : (DeviceSettingsPayload) -> (Result_2);
   add_device_settings_to_research_data : (nat64, nat64) -> (Result_1);
   add_research_data : (ResearchDataPayload) -> (Result_3);
-  add_research_data_to_device_configuration : (nat64, nat64) -> (Result_1);
   add_user_profile : (UserProfilePayload) -> (Result_4);
   delete_device_configuration : (nat64) -> (Result_1);
   delete_device_settings : (nat64) -> (Result_1);
